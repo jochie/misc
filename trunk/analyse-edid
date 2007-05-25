@@ -1,0 +1,261 @@
+#!/usr/bin/perl -w
+
+my $line = `ioreg -w0 -l  | grep IODisplayEDID`;
+my $edid;
+
+if (defined($line) && $line =~ /<([0-9a-f]+)>/i) {
+    $edid = $1;
+} else {
+    die "No EDID available, it looks like.\n";
+}
+
+sub get_edid($;$)
+{
+    my ($offset, $length) = @_;
+
+    if (!defined($length)) {
+	$length = 1;
+    }
+    return substr($edid, $offset * 2, $length * 2);
+}
+
+sub describe_ascii($)
+{
+    my ($text) = @_;
+    my $result = "";
+    for (my $i = 0; $i < length($text); $i += 2) {
+	my $val = hex(substr($text, $i, 2));
+	if ($val == 10) {
+	    return $result;
+	}
+	if ($val < 32 || $val > 127) {
+	    $result .= "\\x" . substr($text, $i, 2);
+	} else {
+	    $result .= chr($val);
+	}
+    }
+    return $result;
+}
+
+sub describe_chroma($)
+{
+    my ($value) = @_;
+
+    return sprintf("%.3f", $value / 0x400);
+}
+
+sub describe_block($)
+{
+    my ($offset) = @_;
+    my $block_types = {"ff" => "Monitor Serial Number",
+		       "fe" => "ASCII string",
+		       "fd" => "Monitor Range Limits",
+		       "fc" => "Monitor name",
+		       "fb" => "Colour Point Data",
+		       "fa" => "Standard Timing Data",
+		       "f9" => "Currently undefined",
+		       "f8" => "Defined by manufacturer"};
+    if (get_edid($offset, 2) eq "0000") {
+	if (defined($block_types->{get_edid($offset + 3)})) {
+	    print "  " . ($offset + 3) . ": Block type: (" . get_edid($offset + 3) . ") " . $block_types->{get_edid($offset + 3)} . "\n";
+	    if (get_edid($offset + 3) eq "ff" || "fe" || "fc") {
+		print "    \"" . describe_ascii(get_edid($offset + 5, 13)) . "\"\n";
+	    }
+	} else {
+	    print "  " . ($offset + 3) . ": Block type: (" . get_edid($offset + 3) . ") UNKNOWN\n";
+	    print "    \"" . get_edid($offset + 4, 14) . "\"\n";
+	}
+    } else {
+	print "  Pixel Clock): " . (hex(get_edid($offset + 1) . get_edid($offset)) / 100) . " MHz\n";
+	print "\n";
+	print  "                 Horizontal:        Vertical:\n";
+	printf("  Active ....... %4d pixels         %4d lines\n",
+	       (hex(get_edid($offset + 2)) |
+		(hex(get_edid($offset + 4)) & 0xf0) << 4),
+	       (hex(get_edid($offset + 5)) |
+		(hex(get_edid($offset + 7)) & 0xf0) << 4));
+	printf("  Blanking ..... %4d pixels         %4d lines\n",
+	       (hex(get_edid($offset + 3)) |
+		(hex(get_edid($offset + 4)) & 0x0f) << 8),
+	       (hex(get_edid($offset + 6)) |
+		(hex(get_edid($offset + 7)) & 0x0f) << 8));
+	printf("  Sync Offset .. %4d pixels         %4d lines\n",
+	       (hex(get_edid($offset + 8)) |
+		(hex(get_edid($offset + 11)) & 0xc0) << 2),
+	       (((hex(get_edid($offset + 10)) & 0xf0) >> 4) |
+		((hex(get_edid($offset + 11)) & 0x0c) << 2)));
+	printf("  Pulse Width .. %4d pixels         %4d lines\n",
+	       (hex(get_edid($offset + 9)) |
+		(hex(get_edid($offset + 11)) & 0x30) << 4),
+	       (((hex(get_edid($offset + 10)) & 0x0f)) |
+		((hex(get_edid($offset + 11)) & 0x03) << 4)));
+	print "\n";
+	printf("  Image Size ... %4d mm             %4d mm\n",
+	       (hex(get_edid($offset + 12)) |
+		(hex(get_edid($offset + 14)) & 0xf0) << 4),
+	       (hex(get_edid($offset + 13)) |
+		(hex(get_edid($offset + 14)) & 0x0f) << 8));
+	printf("  Border ....... %4d pixels         %4d lines\n",
+	       hex(get_edid($offset + 15)),
+	       hex(get_edid($offset + 16)));
+
+	print((hex(get_edid($offset + 17)) & 0x80) ?
+	      "  Interlaced\n" : "  Non-Interlaced\n");
+	print "  Stereo\n" if hex(get_edid($offset + 17)) & 0x60;
+	print "  Separate sync\n" if hex(get_edid($offset + 17)) & 0x18;
+	print((hex(get_edid($offset + 17)) & 0x04) ?
+	    "  +HSync\n" : "  -HSync\n");
+	print((hex(get_edid($offset + 17)) & 0x02) ?
+	    "  +VSync\n" : "  -VSync\n");
+	if (hex(get_edid($offset + 17)) & 0x60) {
+	    print "  Stereo mode\n" if hex(get_edid($offset + 17)) & 0x01;
+	}
+    }
+}
+
+my $csum = 0;
+for (my $i = 0; $i < length($edid); $i += 2) {
+    $csum = ($csum + hex(substr($edid, $i, 2))) % 256;
+}
+if ($csum == 0) {
+    print "Checksum verified.\n";
+} else {
+    print "WARNING: Invalid checksum.  Proceeding regardless.\n";
+}
+
+if (get_edid(0, 8) ne "00ffffffffffff00") {
+    print "WARNING: Invalid header.  Proceeding regardless.\n";
+}
+print "Complete serial number\n";
+print "  Manufacturer ID:     " . get_edid( 8, 2) . "\n";
+print "  Product ID Code:     " . get_edid(10, 2) . "\n";
+print "  Serial Number:       " . get_edid(12, 4) . "\n";
+print "\n";
+print "Manufactured:        Week " . hex(get_edid(16, 1)) . " of " . (hex(get_edid(17, 1)) + 1990) . "\n";
+print "EDID Version Number: " . hex(get_edid(18, 1)) . "." . hex(get_edid(19, 1)) . "\n";
+print "Basic Display Parameters\n";
+print "  VIDEO INPUT DEFINITION\n";
+if (hex(get_edid(20, 1)) & 0x80) {
+    print "    bit 7: 1=digital\n";
+    if (hex(get_edid(20, 1)) & 0x01) {
+	print "    bit 0: 1=DFP 1.x compatible\n";
+    }
+} else {
+    print "    bit 7: 0=analog\n";
+    my $levels = { 0 => "0.7, 0.3",
+		   1 => "0.714, 0.286",
+		   2 => "1, -4",
+		   3 => "0.7, 0" };
+    print "    bit 6-5: video level: " . $levels->{(hex(get_edid(20)) & 0x60) >> 5} . "\n";
+    if (hex(get_edid(20)) & 0x10) {
+	print "    bit 4: blank-to-black setup\n";
+    }
+    if (hex(get_edid(20)) & 0x08) {
+	print "    bit 3: separate syncs\n";
+    }
+    if (hex(get_edid(20)) & 0x04) {
+	print "    bit 2: composite sync\n";
+    }
+    if (hex(get_edid(20)) & 0x02) {
+	print "    bit 1: sync on green\n";
+    }
+    if (hex(get_edid(20)) & 0x01) {
+	print "    bit 0: serration vsync\n";
+    }
+}
+print "Maximum Horizontal Image Size: " . hex(get_edid(21, 1)) . " cm\n";
+print "Maximum Vertical Image Size: " . hex(get_edid(22, 1)) . " cm\n";
+print "Display Gamma: " . (1 + hex(get_edid(23, 1)) / 100) . "\n";
+print "\nPower Management and Supported Feature(s):\n";
+if (hex(get_edid(24, 1)) & 0x80) {
+    print "    bit 7: standby\n";
+}
+if (hex(get_edid(24, 1)) & 0x40) {
+    print "    bit 6: suspend\n";
+}
+if (hex(get_edid(24, 1)) & 0x20) {
+    print "    bit 5: active-off/low power\n";
+}
+print "    bit 4-3: display type:\n";
+my $dtypes = {0 => "monochrome",
+	      1 => "RGB colour",
+	      2 => "non RGB multicolour",
+	      3 => "undefined"};
+my $dtype = ((hex(get_edid(24, 1)) & 0x18) >> 3);
+print "      " . $dtypes->{$dtype} . "\n";
+print "    bit 2: standard colour space\n" if hex(get_edid(24, 1)) & 0x04;
+# print "    bit 1: preferred timing mode\n" if hex(get_edid(24, 1)) & 0x02;
+print "    bit 0: default GTF supported\n" if hex(get_edid(24, 1)) & 0x01;
+print "\n";
+print "CHROMA INFO\n";
+print("  Red X: " .
+      describe_chroma((hex(get_edid(27)) << 2) |
+		      ((hex(get_edid(25)) & 0xc0) >> 6)) . " " .
+      "Green X: " .
+      describe_chroma((hex(get_edid(29)) << 2) |
+		      ((hex(get_edid(25)) & 0x0c) >> 2)) . " " .
+      "Blue X: " .
+      describe_chroma((hex(get_edid(31)) << 2) |
+		      ((hex(get_edid(26)) & 0xc0) >> 6)) . " " .
+      "White X: " . describe_chroma((hex(get_edid(33)) << 2) |
+				    ((hex(get_edid(26)) & 0x0c) >> 2)) . "\n");
+print("  Red Y: " .
+      describe_chroma((hex(get_edid(28)) << 2) |
+		      ((hex(get_edid(25)) & 0x30) >> 4)) . " " .
+      "Green Y: " .
+      describe_chroma((hex(get_edid(30)) << 2) |
+		      ((hex(get_edid(25)) & 0x03) >> 0)) . " " .
+      "Blue Y: " .
+      describe_chroma((hex(get_edid(32)) << 2) |
+		      ((hex(get_edid(26)) & 0x30) >> 4)) . " " .
+      "White Y: " .
+      describe_chroma((hex(get_edid(34)) << 2) |
+		      ((hex(get_edid(26)) & 0x03) >> 0)) . "\n");
+
+print "\nESTABLISHED TIMING I\n";
+print "    bit 7: 720x400\@70 Hz\n" if hex(get_edid(35)) & 0x80;
+print "    bit 6: 720x400\@88 Hz\n" if hex(get_edid(35)) & 0x40;
+print "    bit 5: 640x480\@60 Hz\n" if hex(get_edid(35)) & 0x20;
+print "    bit 4: 640x480\@67 Hz\n" if hex(get_edid(35)) & 0x10;
+print "    bit 3: 640x480\@72 Hz\n" if hex(get_edid(35)) & 0x08;
+print "    bit 2: 640x480\@75 Hz\n" if hex(get_edid(35)) & 0x04;
+print "    bit 1: 800x600\@56 Hz\n" if hex(get_edid(35)) & 0x02;
+print "    bit 0: 800x600\@60 Hz\n" if hex(get_edid(35)) & 0x01;
+print "\nESTABLISHED TIMING II\n";
+print "    bit 7: 800x600\@72 Hz\n" if hex(get_edid(36)) & 0x80;
+print "    bit 6: 800x600\@75 Hz\n" if hex(get_edid(36)) & 0x40;
+print "    bit 6: 832x624\@75 Hz\n" if hex(get_edid(36)) & 0x20;
+print "    bit 6: 1024x768\@87 Hz (Interlaced)\n" if hex(get_edid(36)) & 0x10;
+print "    bit 6: 1024x768\@60 Hz\n" if hex(get_edid(36)) & 0x08;
+print "    bit 6: 1024x768\@70 Hz\n" if hex(get_edid(36)) & 0x04;
+print "    bit 6: 1024x768\@75 Hz\n" if hex(get_edid(36)) & 0x02;
+print "    bit 6: 1280x1024\@75 Hz\n" if hex(get_edid(36)) & 0x01;
+
+print "\nManufacturer's Reserved Timing: " . hex(get_edid(37)) . "\n";
+print "\nStandard Timing Identification\n";
+for ($i = 38; $i < 53; $i += 2) {
+    my $ratios = {0 => "16:10",
+		  1 => "4:3",
+		  2 => "5:4",
+		  3 => "16:9"};
+    if (get_edid($i) eq "01" && get_edid($i + 1) eq "01") {
+	# print "  Block " . (($i - 38) / 2 + 1) . ": Unused.\n";
+    } else {
+	print "  Block " . (($i - 38) / 2 + 1) . ":\n";
+	print "    Horizontal resolution: " . (248 + hex(get_edid($i)) * 8) . "\n";
+	print "    Aspect ratio: " . $ratios->{(hex(get_edid($i + 1)) & 0xc0) >> 6} . "\n";
+	print "    Vertical frequency: " . (60 + hex(get_edid($i + 1)) & 0x3f) . "\n";
+    }
+}
+
+print "\nDescriptor Block 1\n";
+describe_block(54);
+print "\nDescriptor Block 2\n";
+describe_block(72);
+print "\nDescriptor Block 3\n";
+describe_block(90);
+print "\nDescriptor Block 4\n";
+describe_block(108);
+
+print "\nExtension EDID Block(s): " . hex(get_edid(126)) . "\n";
+print "\nChecksum: " . hex(get_edid(127)) . "\n";
