@@ -1,0 +1,4 @@
+# Ingest the appropriately formatted output from these scripts into the
+# InflexDB instance running here
+* * * * * root curl -s -XPOST 'http://localhost:8086/write?db=servers' --data-raw "$(/root/fping_influxdb.pl)"
+* * * * * root curl -s -XPOST 'http://localhost:8086/write?db=servers' --data-raw "$(/root/hardware_monitor)"

@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+
+my $host = qx(hostname -f); chomp($host);
+
+foreach my $dir (glob("/sys/class/hwmon/hwmon*")) {
+    foreach my $temp (glob("$dir/temp*_input")) {
+	open(my $temp_fd, '<', $temp) ||
+	    die "Could not open $temp: $!\n";
+	my $value = <$temp_fd>;
+	close($temp_fd);
+	next if !defined($value);
+	chomp($value);
+	($temp) = $temp =~ /\/(.*)_input$/;
+	printf "hwmon,host=%s,hwmon=%s,sensor=%s value=%.2f\n", $host, basename($dir), basename($temp), $value / 1000;
+    }
+}
+
+    
