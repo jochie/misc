@@ -3,8 +3,9 @@
 Plugin Name: Custom Pages Widget
 Description: A configurable pages section in your sidebar.
 Author: Erwin Harte
-Version: 1.0
+Version: 1.1
 Author URI: http://is-here.com/projects/wordpress/pages
+Credits: Calvin Yu (http://blog.codeeg.com/)
 */
 
 function widget_custom_pages_init() {
@@ -20,10 +21,11 @@ function widget_custom_pages($args) {
     $depth    = empty($options['depth']) ? '0'                  : $options['depth'];
     $sort_col = empty($options['sort_col'])  ? __('post_title') : $options['sort_col'];
     $sort_ord = empty($options['sort_ord'])  ? __('ASC')        : $options['sort_ord'];
+    $exclude  = empty($options['exclude'])  ? ''                : $options['exclude'];
 
     echo $before_widget . $before_title . $title . $after_title . '<ul>';
 
-    wp_list_pages("title_li=&sort_order=$sort_ord&sort_column=$sort_col&depth=$depth");
+    wp_list_pages("title_li=&sort_order=$sort_ord&sort_column=$sort_col&depth=$depth&exclude=$exclude");
     echo '</ul>' . $after_widget;
 }
 
@@ -34,6 +36,7 @@ function widget_custom_pages_control() {
 	$newoptions['title']     = strip_tags(stripslashes($_POST['custom-pages-title']));
 	$newoptions['sort_col']  = strip_tags(stripslashes($_POST['custom-pages-sort-col']));
 	$newoptions['sort_ord']  = strip_tags(stripslashes($_POST['custom-pages-sort-ord']));
+	$newoptions['exclude']   = strip_tags(stripslashes($_POST['custom-pages-exclude']));
     }
     if ( $options != $newoptions ) {
 	$options = $newoptions;
@@ -43,6 +46,7 @@ function widget_custom_pages_control() {
     $title    = wp_specialchars($options['title']);
     $sort_col = wp_specialchars($options['sort_col']);
     $sort_ord = wp_specialchars($options['sort_ord']);
+    $exclude  = wp_specialchars($options['exclude']);
 ?>
 <div style="text-align:right">
   <label for="custom-pages-title" style="line-height:35px;display:block;">Widget Title:
@@ -50,6 +54,9 @@ function widget_custom_pages_control() {
   </label>
   <label for="custom-pages-depth" style="line-height:35px;display:block;">Depth:
     <input id="custom-pages-depth" name="custom-pages-depth" type="text" value="<?php echo htmlspecialchars($depth); ?>" />
+  </label>
+  <label for="custom-pages-exclude" style="line-height:35px;display:block;">Exclude:
+    <input id="custom-pages-exclude" name="custom-pages-exclude" type="text" value="<?php echo htmlspecialchars($exclude); ?>" />
   </label>
   <label for="custom-pages-sort-col" style="line-height:30px;display:block;">Sort on:
     <select name="custom-pages-sort-col" id="custom-pages-sort-col">
