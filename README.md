@@ -2,3 +2,4 @@
 
 *  `analyse-edid` - Decode the EDID data (Extended Display Identification Data)
 *  `screen-at` - Wrapper around `ssh` + `screen`
+*  `ds200/` - An init-script for a named pipe and a listener script that parses the incoming syslog data
