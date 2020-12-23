@@ -19,6 +19,16 @@ sub get_edid($;$)
     return substr($edid, $offset * 2, $length * 2);
 }
 
+sub describe_man($)
+{
+    my ($text) = @_;
+
+    my $char1 = (hex($text) & 0x7c00) >> 10;
+    my $char2 = (hex($text) & 0x03e0) >>  5;
+    my $char3 = (hex($text) & 0x001f) >>  0;
+    return chr(64 + $char1) . chr(64 + $char2) . chr(64 + $char3);
+}
+
 sub describe_ascii($)
 {
     my ($text) = @_;
@@ -127,7 +137,7 @@ if (get_edid(0, 8) ne "00ffffffffffff00") {
     print "WARNING: Invalid header.  Proceeding regardless.\n";
 }
 print "Complete serial number\n";
-print "  Manufacturer ID:     " . get_edid( 8, 2) . "\n";
+print "  Manufacturer ID:     " . describe_man(get_edid( 8, 2)) . " (" . get_edid(8, 2) . ")\n";
 print "  Product ID Code:     " . get_edid(10, 2) . "\n";
 print "  Serial Number:       " . get_edid(12, 4) . "\n";
 print "\n";
