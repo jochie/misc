@@ -1,0 +1,25 @@
+#!/bin/sh
+
+if [ $# -lt 2 -o $# -gt 3 ]; then
+    echo "Usage: screen-at [<port>] [<userid>@]<hostname> <screenid>" 1>&2
+fi
+
+port=""
+if [ $# -eq 3 ]; then
+    port="-p $1"
+    shift
+fi
+
+while true; do
+    if [ "x$1" = "xlocalhost" ]; then
+        screen -A -r -d $2 || screen -S $2
+    else
+        ssh $port -t "$1" "screen -A -r -d $2 || screen -S $2"
+    fi
+    /bin/echo -n "Restart (Y/n): "
+    read line
+    if [ "x$line" = "xN" ]; then
+	exit
+    fi
+done
+
