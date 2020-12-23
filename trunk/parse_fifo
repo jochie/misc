@@ -1,0 +1,77 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+my $fifo = '/var/run/ds200/fifo';
+
+local *LOG;
+
+sub sig_terminate {
+    # Close files:
+    close(FIFO);
+    close(LOG);
+
+    # Exit!
+    die;
+}
+
+$SIG{TERM} = \&sig_terminate;
+
+sub dolog($)
+{
+    my ($text) = @_;
+
+    print localtime().': '.$text."\n";
+}
+
+sub increase_counter($)
+{
+    my ($filename) = @_;
+
+    my $count = 0;
+    local *FILE;
+
+    if (open(FILE, $filename)) {
+	$count = <FILE>;
+	close(FILE);
+	chomp($count);
+    } else {
+	$count = 0;
+    }
+    $count++;
+    open(FILE, ">$filename") ||
+	die "Could not open $filename for writing: $!\n";
+    print FILE "$count\n";
+    close(FILE);
+}
+
+sub main()
+{
+    open(LOG, ">>/var/log/ds200/parse_fifo.log") ||
+	die "Could not open logfile: $!\n";
+    select(LOG);
+    $| = 1;
+
+    for (;;) {
+	if (open(FIFO, $fifo)) {
+	    dolog "Opened FIFO.";
+	    while (<FIFO>) {
+		chomp;
+
+		if (/^(.*) \S+ DS200SpamWall\[\d+\]: (\d+\.\d+\.\d+\.\d+) (\d+) (ACCEPT|REJECT)$/) {
+		    dolog "<$1; $2; $3; $4>";
+		    if ($4 eq 'ACCEPT') {
+			increase_counter "/your/path/ds200/accept.total";
+		    } else {
+			increase_counter "/your/path/ds200/reject.total";
+		    }
+		}
+	    }
+	    close(FIFO);
+	}
+	dolog "Sleeping and then reopening the FIFO.";
+	sleep(1);
+    }
+}
+
+main;
