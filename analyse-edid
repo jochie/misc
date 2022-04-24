@@ -254,7 +254,7 @@ sub process_edid()
 
     print "\nManufacturer's Reserved Timing: " . hex(get_edid(37)) . "\n";
     print "\nStandard Timing Identification\n";
-    for ($i = 38; $i < 53; $i += 2) {
+    for (my $i = 38; $i < 53; $i += 2) {
         my $ratios = {0 => "16:10",
                       1 => "4:3",
                       2 => "5:4",
