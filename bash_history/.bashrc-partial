@@ -1,0 +1,10 @@
+# if shell is interactive, preserve copy of .bash_history
+if [[ $- =~ "i" ]]; then
+    if [ -d $HOME/.history -a -d $HOME/.history/.git ]; then
+	cp $HOME/.bash_history $HOME/.history/.bash_history
+	(
+	    cd $HOME/.history
+	    git commit -m "Automated commit from ~/.bash_logout" .bash_history
+	)
+    fi
+fi
