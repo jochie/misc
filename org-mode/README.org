@@ -1,0 +1,21 @@
+#+STARTUP: indent
+* =confluence_upload.sh=
+This has been created (and tested on) the Atlassian Confluence Server only, not the Atlassian cloud variation.
+
+The scripts expect to find a =~/.confluence.config= file that it sources. It should look like this:
+#+begin_src text
+CONF_USER="username"
+CONF_SPACE="space-key"
+CONF_PARENT="Your Parent Page"
+CONF_SERVER="https://confluence.example.com"
+CONF_ELISP="~/.emacs"
+#+end_src
+
+The =CONF_SPACE= and =CONF_PARENT= are default values, in case nothing is specified in the org-mode file itself, like this:
+#+begin_src text
+#+confluence-space: space-key
+#+confluence-parent: My Parent Page
+#+confluence-title: Title Of The Page
+#+end_src
+
+The =CONF_ELISP= can point to a non-standard minimal startup file that is just enough to make sure that =org-confluence-export-as-confluence= is available to run, because the =emacs --batch= environment is very minimal, though I just point it to =~/.emacs= myself, at this time.
