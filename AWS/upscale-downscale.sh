@@ -16,6 +16,7 @@ function wait_for_state() {
 		   jq .Reservations[0].Instances[0])
 	ec2_state=$(jq -r -C .State.Name <<< "$JSON")
 	if [ "$DESIRED_STATE" = "$ec2_state" ]; then
+	    echo
 	    echo " Instance state is now '$DESIRED_STATE'."
 	    break
 	fi
