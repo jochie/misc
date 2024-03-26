@@ -19,3 +19,5 @@ The =CONF_SPACE= and =CONF_PARENT= are default values, in case nothing is specif
 #+end_src
 
 The =CONF_ELISP= can point to a non-standard minimal startup file that is just enough to make sure that =org-confluence-export-as-confluence= is available to run, because the =emacs --batch= environment is very minimal, though I just point it to =~/.emacs= myself, at this time.
+* =configure_cloud_upload.sh=
+Similar to =confluence_upload.sh= except you're expected to get yourself [[https://id.atlassian.com/manage-profile/security/api-tokens][an API token]] and put that in the =~/.confluence.config= file as =CONF_TOKEN=, and there will not be any password prompting.
