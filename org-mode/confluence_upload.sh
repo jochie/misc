@@ -104,7 +104,12 @@ echo "Confluence page title:  '$TITLE'"
 # echo "URL TITLE: $URLTITLE"
 
 WIKIFILE="$(dirname "$ORGFILE")/$(basename "$ORGFILE" .org).wiki"
+echo "Confluence export file: '$WIKIFILE'"
 if [ -e "$WIKIFILE" ]; then
+    if [ "$WIKIFILE" -nt "$ORGFILE" ]; then
+	echo "The export file is newer than the org file. Skipping upload." 1>&2
+	exit 2
+    fi
     echo "$0: Moving previous $WIKIFILE out of the way" 1>&2
     mv -f "$WIKIFILE" "$WIKIFILE.old"
 fi
@@ -124,6 +129,20 @@ if [ ! -e "$WIKIFILE" ]; then
     echo "$0: Confluence export failed? Aborting." 1>&2
     exit 1
 fi
+
+function remove_wikifile() {
+    # Restore echoing, if we aborted in the middle of the password prompt.
+    stty echo
+    (
+	echo
+	echo "Something went wrong, deleting the (possibly) not uploaded Confluence export."
+	echo
+    ) 1>&2
+    rm -f "$WIKIFILE"
+    exit 1
+}
+
+trap remove_wikifile SIGINT
 
 COOKIES="${TMPDIR:-/tmp}/${CONF_USER}-conf.cookies"
 conf_session_refresh "$COOKIES"
