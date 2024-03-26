@@ -27,6 +27,18 @@ fi
 #                 org-confluence-export-as-confluence
 source $HOME/.confluence.config
 
+if [ -n "$CONF_TOKEN" ]; then
+    # Follow symlink, if necessary
+    progname=$(readlink "$0")
+    if [ -z "$progname" ]; then
+	progname="$0"
+    fi
+    dir=$(dirname "$progname")
+    # Redirect to the Atlassian-cloud version
+    "$dir/confluence_cloud_upload.sh" "$1"
+    exit $?
+fi
+
 function strip_whitespace() {
     echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
