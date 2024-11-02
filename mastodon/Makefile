@@ -1,7 +1,16 @@
-SOURCE=summarize.py
+SCRIPTS=summarize.py
 
 DEFAULT:
 	@echo "Nothing to do."
 
 check:
-	@pylint $(SOURCE)
+	# First install pylint
+	sudo apt-get -q install -y pylint
+	for src in $(SCRIPTS); do \
+		pylint $$src; \
+		exitcode=$$?; \
+		echo "Exit code: $$exitcode"; \
+		if [ $$exitcode -ne 0 ]; then \
+			exit $$exitcode; \
+		fi; \
+	done

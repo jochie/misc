@@ -7,8 +7,10 @@ check:
 	perl -c analyse-edid
 	for dir in $(FOLDERS); do \
 		make -C $$dir check; \
-		if [ $$? -ne 0 ]; then \
-			exit $$?; \
+		exitcode=$$?; \
+		echo "Exit code: $$exitcode"; \
+		if [ $$exitcode -ne 0 ]; then \
+			exit $$exitcode; \
 		fi; \
 	done
 
