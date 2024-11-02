@@ -1,4 +1,4 @@
-FOLDERS=ds200 dump1090 influxdb Wordpress
+FOLDERS=ds200 dump1090 influxdb mastodon Wordpress
 
 DEFAULT:
 	@echo "Nothing to do here."
