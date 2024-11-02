@@ -9,7 +9,6 @@ check:
 	for src in $(SCRIPTS); do \
 		pylint $$src; \
 		exitcode=$$?; \
-		echo "Exit code: $$exitcode"; \
 		if [ $$exitcode -ne 0 ]; then \
 			exit $$exitcode; \
 		fi; \

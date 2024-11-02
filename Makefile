@@ -8,7 +8,6 @@ check:
 	for dir in $(FOLDERS); do \
 		make -C $$dir check; \
 		exitcode=$$?; \
-		echo "Exit code: $$exitcode"; \
 		if [ $$exitcode -ne 0 ]; then \
 			exit $$exitcode; \
 		fi; \

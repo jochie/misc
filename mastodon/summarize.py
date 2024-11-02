@@ -211,7 +211,7 @@ def top(opts, title, stat, tracking):
     chart = breakdown[stat]
     accounts = chart.keys()
     accounts = sorted(accounts, key=lambda x: chart[x], reverse=True)
-    for x, acct in enumerate(accounts):
+    for idx, acct in enumerate(accounts):
         acct_display = acct
         if acct in relations:
             suffix = ""
@@ -223,7 +223,7 @@ def top(opts, title, stat, tracking):
                 acct_display += "[" + suffix + "]"
 
         print(f"    {acct_display:40} - {chart[acct]:3} [{chart[acct]/duration:4.1f}]")
-        if x >= maximum:
+        if idx >= maximum:
             break
     print("")
 
