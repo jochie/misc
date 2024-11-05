@@ -1,4 +1,4 @@
-SCRIPTS=summarize.py
+SCRIPTS=summarize.py analyze.py
 
 DEFAULT:
 	@echo "Nothing to do."
